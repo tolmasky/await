@@ -1,0 +1,19 @@
+{
+  "name": "@await/fetch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "fetch.js",
+  "author": "Francisco Ryan Tolmasky I <tolmasky@gmail.com> (https://tolmasky.com/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tolmasky/await/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tolmasky/await.git",
+    "directory": "fetch"
+  },
+  "dependencies": {
+    "@reified/fail": "^1.0.0-alpha.1"
+  }
+}

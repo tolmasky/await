@@ -1,0 +1,16 @@
+{
+  "name": "@await/timeout-error",
+  "version": "1.0.0",
+  "description": "",
+  "main": "timeout-error.js",
+  "author": "Francisco Ryan Tolmasky I <tolmasky@gmail.com> (https://tolmasky.com/)",
+  "license": "MIT",
+  "bugs": {
+    "url" : "https://github.com/tolmasky/await/issues"
+   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tolmasky/await.git",
+    "directory": "timeout-error"
+  }
+}
