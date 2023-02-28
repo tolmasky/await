@@ -21,7 +21,7 @@ const toTimeoutSignal = timeout =>
             cancel: () => _cancelTimeout(timeoutID),
         }));
 
-module.exports = function fetch(resource, { timeout, ...rest })
+module.exports = async function fetch(resource, { timeout, ...rest })
 {
     const signal = toTimeoutSignal(timeout);
 
