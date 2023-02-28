@@ -4,7 +4,7 @@ const fail = require("@reified/fail");
 const TimeoutError = require("@await/timeout-error");
 
 const _AbortController = AbortController;
-const _cancelTimeout = cancelTimeout;
+const _clearTimeout = clearTimeout;
 const _DOMException = DOMException;
 const _fetch = fetch;
 const _setTimeout = setTimeout;
@@ -18,10 +18,10 @@ const toTimeoutSignal = timeout =>
         timeoutID = _setTimeout(() => controller.abort(), timeout)) =>
         Object.assign(controller.signal,
         {
-            cancel: () => _cancelTimeout(timeoutID),
+            cancel: () => _clearTimeout(timeoutID),
         }));
 
-module.exports = async function fetch(resource, { timeout, ...rest })
+module.exports = async function fetch(resource, { timeout, ...rest } = { })
 {
     const signal = toTimeoutSignal(timeout);
 
