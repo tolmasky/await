@@ -1,26 +1,13 @@
-const I = require("@reified/intrinsics");
-const { α } = require("@reified/object");
-const { Error } = I;
+const { I, Error } = require("@reified/intrinsics");
+const { ErrorFactory } = require("@reified/object/factory");
 
 
-function ExitCodeError (exitCode, properties)
+module.exports = ErrorFactory `ExitCodeError` (class extends Error
 {
-    const error = α(
-        Error(`Process exited with status: ${exitCode}`),
-        { exitCode },
-        properties);
-
-    I `Object.defineProperty` (error, "name",
+    constructor(options)
     {
-        value: "ExitCodeError",
-        writable: true,
-        enumerable: false,
-        configurable: true
-    });
+        super(`Process exited with status: ${options.exitCode}`, options);
 
-    return I `Object.setPrototypeOf` (error, ExitCodeError.prototype);
-}
-
-module.exports = ExitCodeError;
-
-I `Object.setPrototypeOf` (ExitCodeError.prototype, Error.prototype);
+        return I `Object.assign` (this, options);
+    }
+});

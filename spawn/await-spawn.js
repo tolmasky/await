@@ -25,7 +25,7 @@ const cstdio = (name, stdio) => Δ => Δ.get (name, self => curry(this, Δ => Δ
 const spawn = ƒ `spawn`
 ({
     [ƒ.called]: implementation,
-    [ƒ.tagged]: ({ callee }, tag) =>
+    [ƒ.tagged]: (tag, callee) =>
         curry(callee, Δ => Δ.concat `arguments` (argument))
 },
     cstdio("verbose", ["ignore", "inherit", "inherit"]),
@@ -99,7 +99,7 @@ console.log(command, args, options);
                 captureStdio && captured);
 
             if (exitCode !== 0 && rejectOnExitCode)
-                return reject(new ExitCodeError(exitCode, result));
+                return reject(ExitCodeError({ exitCode, ...result }));
 
             resolve(result);
         });
