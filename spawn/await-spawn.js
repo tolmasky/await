@@ -6,7 +6,6 @@ const { Readable, Stream } = require("stream");
 const I = require("@reified/intrinsics");
 const { α, ø, o } = require("@reified/object");
 const { ƒ, curry } = require("@reified/function");
-
 const ExitCodeError = require("./exit-code-error");
 
 const toNormalizedArguments = arguments => given((
@@ -24,14 +23,15 @@ const cstdio = (name, stdio) => Δ => Δ.get (name, self => curry(this, Δ => Δ
 
 const spawn = ƒ `spawn`
 ({
-    [ƒ.called]: implementation,
-    [ƒ.tagged]: (tag, callee) =>
+    [ƒ.apply]: async (spawn, _, args) =>
+        await implementation(...(spawn.prefix || []), ...args),
+    [ƒ.tag]: (spawn, _, args) =>
         curry(callee, Δ => Δ.concat `arguments` (argument))
-},
+});/*,
     cstdio("verbose", ["ignore", "inherit", "inherit"]),
     cstdio("silent", "inherit"),
     cstdio("stderr", [0, process.stderr, process.stderr]));
-    
+*/
 module.exports = α(spawn, { spawn });
 /*
 const spawn = ƒ `spawn`
