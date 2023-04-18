@@ -6,10 +6,12 @@ const { Readable, Stream } = require("stream");
 const I = require("@reified/intrinsics");
 const { α, ø, o } = require("@reified/object");
 const { ƒ, curry } = require("@reified/function");
+const Δ = require("@reified/delta");
+
 const ExitCodeError = require("./exit-code-error");
 
-const toNormalizedArguments = arguments => given((
-    flattened = I.Array.prototype.flat.call(arguments),
+const toNormalizedArguments = original => given((
+    flattened = I.Array.prototype.flat.call(original),
     count = flattened.length,
     last = count > 0 && flattened[count - 1],
     options = last && o.typeof(last) === "object" && last,
@@ -23,11 +25,16 @@ const cstdio = (name, stdio) => Δ => Δ.get (name, self => curry(this, Δ => Δ
 
 const spawn = ƒ `spawn`
 ({
-    [ƒ.apply]: async (spawn, _, args) =>
-        await implementation(...(spawn.prefix || []), ...args),
-    [ƒ.tag]: (spawn, _, args) =>
-        curry(callee, Δ => Δ.concat `arguments` (argument))
-});/*,
+    [ƒ.apply]: (spawn, _, args) =>
+        implementation(...(spawn.prefix || []), ...args),
+
+    for: ƒ.tagged `spawn.for` ((_, spawn, tag) =>
+        Δ(spawn, Δ.update("prefix", prefix => prefix ? [...prefix, tag] : [tag])))
+});
+
+
+
+/*,
     cstdio("verbose", ["ignore", "inherit", "inherit"]),
     cstdio("silent", "inherit"),
     cstdio("stderr", [0, process.stderr, process.stderr]));
@@ -45,9 +52,9 @@ const spawn = ƒ `spawn`
     cstdio("stderr", [0, process.stderr, process.stderr]));
 */
 
-function implementation (...arguments)//command, args, options = { })
+function implementation (...args_)//command, args, options = { })
 {
-    const [command, args, options = { }] = toNormalizedArguments(arguments);
+    const [command, args, options = { }] = toNormalizedArguments(args_);
 console.log(command, args, options);
     let child = null;
     return Object.assign(new Promise(function (resolve, reject)

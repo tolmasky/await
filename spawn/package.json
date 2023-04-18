@@ -2,7 +2,7 @@
   "name": "@await/spawn",
   "version": "10.0.0",
   "description": "Asynchronous spawn, captures stdio.",
-  "main": "spawn.js",
+  "main": "await-spawn.js",
   "author": "Francisco Ryan Tolmasky I <tolmasky@gmail.com> (https://tolmasky.com/)",
   "license": "MIT",
   "bugs": {
