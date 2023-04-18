@@ -4,81 +4,98 @@ const { spawn: spawn_native } = require("child_process");
 const { Readable, Stream } = require("stream");
 
 const fail = require("@reified/fail");
-const I = require("@reified/intrinsics");
+const { I, Call } = require("@reified/intrinsics");
 const { α, ø, o } = require("@reified/object");
 const ƒ = require("@reified/function");
 const Δ = require("@reified/delta");
+const { IsArray, IsString, IsObject, IsFunctionObject } = require("@reified/foundation/types-and-values");
+// FIXME: Use a better copy system...
+const ArrayCopy = array => [...array];
 
 const ExitCodeError = require("./exit-code-error");
 
 const toNormalizedArguments = original => given((
-    flattened = I.Array.prototype.flat.call(original),
-    options = ø(...flattened.filter(item => o.typeof(item) !== "string")),
-    args = flattened.filter(item => o.typeof(item) === "string")) =>
+    flattened = Call(I.Array.prototype.flat, original),
+    options = ø(...Δ.filter(IsObject)(flattened)),
+    args = Δ.filter(IsString)(flattened)) =>
     ({ args, options }));
 
-//const 𝑝 = require("@reified/promise");
+const toNormalizedStdio = stdio =>
+    IsString(stdio) ? [stdio, stdio, stdio] :
+    IsArray(stdio) ? ArrayCopy(stdio) :
+    ["pipe", "pipe", "pipe"];
 
-const cstdio = (name, stdio) => Δ => Δ.get (name, self => curry(this, Δ => Δ.fallback `options.stdio` (stdio)))
 
-
-const spawn = ƒ `spawn`
+module.exports = ƒ `spawn`
 ({
     [ƒ.apply]: (spawn, _, args) =>
-        implementation(...args, spawn),
+        implementation(spawn, ...args),
 
-    for: ƒ.tagged `spawn.for` ((_, spawn, tag) =>
-        Δ(spawn, Δ.update("prefix", prefix => prefix ? [...prefix, tag] : [tag]))),
+    for: ƒ `spawn.for`
+    ({
+        [ƒ.apply]: (_, spawn, prefixes) => Δ(spawn,
+            Δ.update("prefix", prefix =>
+                prefix ? [...prefix, ...prefixes] : ArrayCopy(prefixes))),
+
+        [ƒ.tag]: (_, spawn, tag) => Δ(spawn,
+            Δ.update("prefix", prefix => prefix ? [...prefix, tag] : [tag]))
+    }),
 
     parsed: ƒ.method `spawn.parsed` ((_, spawn, [options]) =>
-        o.typeof(options) === "function" ?
+        IsFunctionObject(options)?
             Δ(spawn, Δ.set("parse", options)) :
-        o.typeof(options) === "object" &&
+        IsObject(options) &&
         I `Object.hasOwn` (options, "split") ?
             given(({ split } = options) =>
                 Δ(spawn, Δ.set("parse",
                     ({ stdout }) => stdout.trim().split(split)))) :
+        IsObject(options) &&
+        I `Object.hasOwn` (options, "trim") ?
+            options.trim ?
+                Δ(spawn, Δ.set("parse",
+                    ({ stdout }) => stdout.trim())) :
+                Δ(spawn, Δ.set("parse", ({ stdout }) => stdout)) :
             fail.type (
                 `spawn.parsed takes either a function or an ` +
-                `object with a split key`))
+                `object with a split or trim key`)),
+
+    get spawn()
+    {
+        return this;
+    },
+
+    get verbose()
+    {
+        return Δ(this, Δ.set("stdio", ["ignore", "inherit", "inherit"]));
+    },
+
+    get silent()
+    {
+        return Δ(this, Δ.set("stdio", "ignore"));
+    },
+
+    get stderr()
+    {
+        return Δ(this, Δ.set("stdio", [[0, process.stderr, process.stderr]]));
+    }
 });
 
-
-
-/*,
-    cstdio("verbose", ["ignore", "inherit", "inherit"]),
-    cstdio("silent", "inherit"),
-    cstdio("stderr", [0, process.stderr, process.stderr]));
-*/
-module.exports = α(spawn, { spawn });
-/*
-const spawn = ƒ `spawn`
-({
-    [ƒ.tagged]: ({ callee }, tag) =>
-        curry(callee, Δ => Δ.concat `arguments` (argument)),
-    [ƒ.untagged]: (_, ...rest) => implementation(...rest),
-},
-    cstdio("verbose", ["ignore", "inherit", "inherit"]),
-    cstdio("silent", "inherit"),
-    cstdio("stderr", [0, process.stderr, process.stderr]));
-*/
-
-function implementation (...unpartitioned)//command, args, options = { })
+function implementation (...unpartitioned)
 {
     const { args: unprefixed, options } = toNormalizedArguments(unpartitioned);
     const { prefix = [], parse = x => x } = options;
     const [command, ...args] = [...prefix, ...unprefixed];
-console.log(unpartitioned, toNormalizedArguments(unpartitioned), command, args, options);
+
     let child = null;
     return Object.assign(new Promise(function (resolve, reject)
     {
         const { captureStdio = true, rejectOnExitCode = true, stdio } = options;
         const captured = { stdout: "", stderr: "" };
         const input =
-            typeof options.input === "string" &&
+            IsString(options.input) &&
             Readable.from([options.input], { objectMode: false });
 
-        const normalizedStdio = getNormalizedStdio(stdio);
+        const normalizedStdio = toNormalizedStdio(stdio);
         const alteredStdio = Object.assign(
             [],
             normalizedStdio,
@@ -124,15 +141,4 @@ console.log(unpartitioned, toNormalizedArguments(unpartitioned), command, args, 
             resolve(parse(result));
         });
     }), { process: child });
-}
-
-function getNormalizedStdio(stdio)
-{
-    if (typeof stdio === "string")
-        return [stdio, stdio, stdio];
-
-    if (Array.isArray(stdio))
-        return [].concat(stdio);
-
-    return ["pipe", "pipe", "pipe"];
 }
