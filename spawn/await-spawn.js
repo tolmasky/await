@@ -3,20 +3,19 @@ const given = f => f();
 const { spawn: spawn_native } = require("child_process");
 const { Readable, Stream } = require("stream");
 
+const fail = require("@reified/fail");
 const I = require("@reified/intrinsics");
 const { α, ø, o } = require("@reified/object");
-const { ƒ, curry } = require("@reified/function");
+const ƒ = require("@reified/function");
 const Δ = require("@reified/delta");
 
 const ExitCodeError = require("./exit-code-error");
 
 const toNormalizedArguments = original => given((
     flattened = I.Array.prototype.flat.call(original),
-    count = flattened.length,
-    last = count > 0 && flattened[count - 1],
-    options = last && o.typeof(last) === "object" && last,
-    [command, ...args] = options ? flattened.slice(0, -1) : flattened) =>
-    [command, args, ...(options ? [options] : [])]);
+    options = ø(...flattened.filter(item => o.typeof(item) !== "string")),
+    args = flattened.filter(item => o.typeof(item) === "string")) =>
+    ({ args, options }));
 
 //const 𝑝 = require("@reified/promise");
 
@@ -26,10 +25,22 @@ const cstdio = (name, stdio) => Δ => Δ.get (name, self => curry(this, Δ => Δ
 const spawn = ƒ `spawn`
 ({
     [ƒ.apply]: (spawn, _, args) =>
-        implementation(...(spawn.prefix || []), ...args),
+        implementation(...args, spawn),
 
     for: ƒ.tagged `spawn.for` ((_, spawn, tag) =>
-        Δ(spawn, Δ.update("prefix", prefix => prefix ? [...prefix, tag] : [tag])))
+        Δ(spawn, Δ.update("prefix", prefix => prefix ? [...prefix, tag] : [tag]))),
+
+    parsed: ƒ.method `spawn.parsed` ((_, spawn, [options]) =>
+        o.typeof(options) === "function" ?
+            Δ(spawn, Δ.set("parse", options)) :
+        o.typeof(options) === "object" &&
+        I `Object.hasOwn` (options, "split") ?
+            given(({ split } = options) =>
+                Δ(spawn, Δ.set("parse",
+                    ({ stdout }) => stdout.trim().split(split)))) :
+            fail.type (
+                `spawn.parsed takes either a function or an ` +
+                `object with a split key`))
 });
 
 
@@ -52,10 +63,12 @@ const spawn = ƒ `spawn`
     cstdio("stderr", [0, process.stderr, process.stderr]));
 */
 
-function implementation (...args_)//command, args, options = { })
+function implementation (...unpartitioned)//command, args, options = { })
 {
-    const [command, args, options = { }] = toNormalizedArguments(args_);
-console.log(command, args, options);
+    const { args: unprefixed, options } = toNormalizedArguments(unpartitioned);
+    const { prefix = [], parse = x => x } = options;
+    const [command, ...args] = [...prefix, ...unprefixed];
+console.log(unpartitioned, toNormalizedArguments(unpartitioned), command, args, options);
     let child = null;
     return Object.assign(new Promise(function (resolve, reject)
     {
@@ -108,7 +121,7 @@ console.log(command, args, options);
             if (exitCode !== 0 && rejectOnExitCode)
                 return reject(ExitCodeError({ exitCode, ...result }));
 
-            resolve(result);
+            resolve(parse(result));
         });
     }), { process: child });
 }
