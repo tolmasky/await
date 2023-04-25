@@ -15,7 +15,7 @@ const ArrayCopy = array => [...array];
 const ExitCodeError = require("./exit-code-error");
 
 const toNormalizedArguments = original => given((
-    flattened = Call(I.Array.prototype.flat, original),
+    flattened = Call(I.Array.prototype.flat, original, Infinity),
     options = ø(...Δ.filter(IsObject)(flattened)),
     args = Δ.filter(IsString)(flattened)) =>
     ({ args, options }));
@@ -24,6 +24,24 @@ const toNormalizedStdio = stdio =>
     IsString(stdio) ? [stdio, stdio, stdio] :
     IsArray(stdio) ? ArrayCopy(stdio) :
     ["pipe", "pipe", "pipe"];
+
+const toNormalizedParse = parse =>
+    parse === false ?
+        parse :
+    IsFunctionObject(parse) ?
+        parse :
+    parse === "stdout" ?
+        (({ stdout }) => stdout) :
+    parse === "trim" ?
+        (({ stdout }) => stdout.trim()) :
+    IsObject(parse) &&
+    I `Object.hasOwn` (parse, "split") ?
+        given(({ split } = parse) =>
+            ({ stdout }) => stdout.trim().split(split)) :
+        fail.type (
+            `The "parse" option can be either false, the string "stdout", ` +
+            `the string "trim", an object with a string "split" property, ` +
+            `or a function.`);
 
 
 module.exports = ƒ `spawn`
@@ -41,23 +59,21 @@ module.exports = ƒ `spawn`
             Δ.update("prefix", prefix => prefix ? [...prefix, tag] : [tag]))
     }),
 
-    parsed: ƒ.method `spawn.parsed` ((_, spawn, [options]) =>
-        IsFunctionObject(options)?
-            Δ(spawn, Δ.set("parse", options)) :
-        IsObject(options) &&
-        I `Object.hasOwn` (options, "split") ?
-            given(({ split } = options) =>
-                Δ(spawn, Δ.set("parse",
-                    ({ stdout }) => stdout.trim().split(split)))) :
-        IsObject(options) &&
-        I `Object.hasOwn` (options, "trim") ?
-            options.trim ?
-                Δ(spawn, Δ.set("parse",
-                    ({ stdout }) => stdout.trim())) :
-                Δ(spawn, Δ.set("parse", ({ stdout }) => stdout)) :
-            fail.type (
-                `spawn.parsed takes either a function or an ` +
-                `object with a split or trim key`)),
+    parsed: ƒ.method `spawn.parse` ((_, spawn, [parse]) =>
+        Δ(spawn, Δ.set("parse", parse))),
+
+    split: ƒ.method `spawn.split` ((_, spawn, [split]) =>
+        Δ(spawn, Δ.set("parse", { split }))),
+
+    get stdout()
+    {
+        return Δ(this, Δ.set("parse", "stdout"));
+    },
+
+    get trim()
+    {
+        return Δ(this, Δ.set("parse", "trim"));
+    },
 
     get spawn()
     {
@@ -83,7 +99,8 @@ module.exports = ƒ `spawn`
 function implementation (...unpartitioned)
 {
     const { args: unprefixed, options } = toNormalizedArguments(unpartitioned);
-    const { prefix = [], parse = x => x } = options;
+    const { prefix = [], parse = false } = options;
+    const normalizedParse = toNormalizedParse(parse) || (x => x);
     const [command, ...args] = [...prefix, ...unprefixed];
 
     let child = null;
@@ -138,7 +155,8 @@ function implementation (...unpartitioned)
             if (exitCode !== 0 && rejectOnExitCode)
                 return reject(ExitCodeError({ exitCode, ...result }));
 
-            resolve(parse(result));
+            resolve(normalizedParse(result));
         });
     }), { process: child });
 }
+
