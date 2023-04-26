@@ -25,6 +25,8 @@ const toNormalizedStdio = stdio =>
     IsArray(stdio) ? ArrayCopy(stdio) :
     ["pipe", "pipe", "pipe"];
 
+const trim = string => string.replace(/^\0+|\0+$/g, "");
+
 const toNormalizedParse = parse =>
     parse === false ?
         parse :
@@ -33,11 +35,11 @@ const toNormalizedParse = parse =>
     parse === "stdout" ?
         (({ stdout }) => stdout) :
     parse === "trim" ?
-        (({ stdout }) => stdout.trim()) :
+        (({ stdout }) => trim(stdout)) :
     IsObject(parse) &&
     I `Object.hasOwn` (parse, "split") ?
         given(({ split } = parse) =>
-            ({ stdout }) => stdout.trim().split(split)) :
+            ({ stdout }) => trim(stdout).split(split)) :
         fail.type (
             `The "parse" option can be either false, the string "stdout", ` +
             `the string "trim", an object with a string "split" property, ` +
