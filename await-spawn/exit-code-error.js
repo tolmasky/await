@@ -1,5 +1,5 @@
-const { I, Error } = require("@reified/intrinsics");
-const { ErrorFactory } = require("@reified/foundation/factory");
+const { I: { I, Error } } = require("@reified/ecma-262");
+const { ErrorFactory } = require("@reified/core/factory");
 
 
 module.exports = ErrorFactory `ExitCodeError` (class extends Error

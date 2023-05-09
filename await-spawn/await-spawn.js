@@ -3,19 +3,29 @@ const given = f => f();
 const { spawn: spawn_native } = require("child_process");
 const { Readable, Stream } = require("stream");
 
-const fail = require("@reified/fail");
-const { I, Call } = require("@reified/intrinsics");
+const
+{
+    I,
+    IsArray,
+    IsString,
+    IsObject,
+    IsFunctionObject
+} = require("@reified/ecma-262");
+
+const fail = require("@reified/core/fail");
+
 const { α, ø, o } = require("@reified/object");
 const ƒ = require("@reified/function");
 const Δ = require("@reified/delta");
-const { IsArray, IsString, IsObject, IsFunctionObject } = require("@reified/foundation/types-and-values");
+const update = require("@reified/delta/update");
+const Mutation = require("@reified/delta/mutation");
 // FIXME: Use a better copy system...
 const ArrayCopy = array => [...array];
 
 const ExitCodeError = require("./exit-code-error");
 
 const toNormalizedArguments = original => given((
-    flattened = Call(I.Array.prototype.flat, original, Infinity),
+    flattened = original [I `::Array.prototype.flat`] (Infinity),
     options = ø(...Δ.filter(IsObject)(flattened)),
     args = Δ.filter(IsString)(flattened)) =>
     ({ args, options }));
@@ -53,28 +63,29 @@ module.exports = ƒ `spawn`
 
     for: ƒ `spawn.for`
     ({
-        [ƒ.apply]: (_, spawn, prefixes) => Δ(spawn,
-            Δ.update("prefix", prefix =>
-                prefix ? [...prefix, ...prefixes] : ArrayCopy(prefixes))),
+        [ƒ.apply]: (_, spawn, prefixes) => update(spawn,
+            "prefix",
+            Mutation.Update(prefix => prefix ? [...prefix, ...prefixes] : ArrayCopy(prefixes))),
 
-        [ƒ.tag]: (_, spawn, tag) => Δ(spawn,
-            Δ.update("prefix", prefix => prefix ? [...prefix, tag] : [tag]))
+        [ƒ.tag]: (_, spawn, tag) => update(spawn,
+            "prefix",
+            Mutation.Update(prefix => prefix ? [...prefix, tag] : [tag]))
     }),
 
     parsed: ƒ.method `spawn.parse` ((_, spawn, [parse]) =>
-        Δ(spawn, Δ.set("parse", parse))),
+        update(spawn, "parse", parse)),
 
     split: ƒ.method `spawn.split` ((_, spawn, [split]) =>
-        Δ(spawn, Δ.set("parse", { split }))),
+        update(spawn, "parse", { split })),
 
     get stdout()
     {
-        return Δ(this, Δ.set("parse", "stdout"));
+        return update(this, "parse", "stdout");
     },
 
     get trim()
     {
-        return Δ(this, Δ.set("parse", "trim"));
+        return update(this, "parse", "trim");
     },
 
     get spawn()
@@ -84,17 +95,17 @@ module.exports = ƒ `spawn`
 
     get verbose()
     {
-        return Δ(this, Δ.set("stdio", ["ignore", "inherit", "inherit"]));
+        return update(this, "stdio", ["ignore", "inherit", "inherit"]);
     },
 
     get silent()
     {
-        return Δ(this, Δ.set("stdio", "ignore"));
+        return update(this, "stdio", "ignore");
     },
 
     get stderr()
     {
-        return Δ(this, Δ.set("stdio", [[0, process.stderr, process.stderr]]));
+        return update(this, "stdio", [0, process.stderr, process.stderr]);
     }
 });
 
